@@ -1,6 +1,9 @@
 package Plugins::SverigesRadio::Plugin;
 
 # $Id$
+#  335  sudo service logitechmediaserver restart
+#  336  sudo chown -R squeezeboxserver MyHelloWorld/
+#sudo squeezeboxserver --debug plugin.myhelloworld=INFO,persist
 
 use strict;
 use base qw(Slim::Plugin::OPMLBased);
@@ -8,10 +11,10 @@ use File::Spec::Functions qw(catdir);
 use Slim::Utils::Log;
 
 my $log = Slim::Utils::Log->addLogCategory( {
-	category     => 'plugin.myhelloworld',
+	category     => 'plugin.sverigesradio',
 	defaultLevel => 'INFO',
 #	defaultLevel => 'ERROR',
-	description  => 'PLUGIN_MYHELLOWORLD',
+	description  => 'PLUGIN_SVERIGES_RADIO',
 } );
 
 sub initPlugin {
@@ -21,13 +24,14 @@ sub initPlugin {
 	$log->info("file is $file");
 
 	$class->SUPER::initPlugin(
-		feed   => Slim::Utils::Misc::fileURLFromPath($file), #\&handleFeed,
-		tag    => 'sverigesradio',
-#		node   => 'myMusic', what does the node argument do?
-#		node   => 'home',
-#		is_app => 1, #this makes the app apear in 'extras'...
-		menu   => 'radios', # menu=radios and is_app not set makes the app appear in home->radios...
-		weight => 90,
+	    feed   => Slim::Utils::Misc::fileURLFromPath($file), #\&handleFeed,
+	    tag    => 'sverigesradio',
+	    #		node   => 'myMusic', what does the node argument do?
+	    #		node   => 'home',
+	    #		is_app => 1, #this makes the app apear in 'extras'...
+	    menu   => 'radios', # menu=radios and is_app not set makes the app appear in home->radios...
+ # can only be radios for opml based? (line 40 refer to radio.png)
+   	    weight => 1,
 	);
 }
 
