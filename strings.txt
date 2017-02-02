@@ -1,0 +1,7 @@
+PLUGIN_SVERIGES_RADIO_NAME
+	EN	Sveriges Radio
+	SV	Sveriges Radio
+PLUGIN_SVERIGES_RADIO_NAME_DESC
+	EN	Sveriges Radio
+	SV	Sveriges Radio
+

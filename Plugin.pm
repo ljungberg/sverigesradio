@@ -21,7 +21,7 @@ sub initPlugin {
 	$log->info("file is $file");
 
 	$class->SUPER::initPlugin(
-		feed   => \&handleFeed,
+		feed   => Slim::Utils::Misc::fileURLFromPath($file), #\&handleFeed,
 		tag    => 'sverigesradio',
 #		node   => 'myMusic', what does the node argument do?
 #		node   => 'home',
