@@ -1,0 +1,11 @@
+package Plugins::SverigesRadio::XMLParser;
+
+use strict;
+
+use Slim::Utils::Log;
+use XML::Simple;
+use URI::Escape qw(uri_escape_utf8 uri_unescape);
+
+my $log = logger('plugin.sverigesradio');
+
+sub parse {

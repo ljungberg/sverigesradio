@@ -11,8 +11,7 @@
 
 	</outline>
 
-	<outline text="Alla Program" icon="plugins/SverigesRadio/html/images/icon.png">
-	  <outline text="Tankesmedjan" type="audio" URL="http://sverigesradio.se/topsy/ljudfil/5332307.mp3" />
+	<outline text="Alla Program" URL="http://api.sr.se/api/v2/programs/index" parser="Plugins::SverigesRadio::XMLParser?reverse" >
 	</outline>
   </body>
 </opml>
