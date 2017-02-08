@@ -2,8 +2,8 @@ package Plugins::SverigesRadio::Plugin;
 
 # $Id$
 #  335  sudo service logitechmediaserver restart
-#  336  sudo chown -R squeezeboxserver MyHelloWorld/
-#sudo squeezeboxserver --debug plugin.myhelloworld=INFO,persist
+#  336  sudo chown -R squeezeboxserver SverigesRadio/
+#sudo squeezeboxserver --debug plugin.sverigesradio=INFO,persist
 
 use strict;
 use base qw(Slim::Plugin::OPMLBased);
@@ -46,16 +46,39 @@ sub initPlugin {
 sub playerMenu { }
 sub getDisplayName { 'PLUGIN_SVERIGES_RADIO_NAME' }
 sub handleFeed {
-    my ($client, $cb, $args) = @_;
-
-#    my $items = [{name => cstring($client, 'PLUGIN_MYHELLOWORLD'),
-#		  type => 'textarea'}];
-#    my $items = [{name => "file",
-#		  play => 'http://sverigesradio.se/topsy/ljudfil/4381232.mp3',
-#	          on_select => 'play'}];
-    #NEXT -> fetch xml programs and check BBCIPlayer how to parse into a menue...
-
+    my ($client, $cb, $params) = @_;
+## CONTINUE HERE: NEXT TROUBLESHOOT WHY HASESH NOT SENT CORRECTLY...
+    my $args = {
+	parse_fun => \&parsePrograms,
+	url        => 'http://api.sr.se/api/v2/programs/index',
+		};
     my $url = 'http://api.sr.se/api/v2/programs/index';
+    fetch_and_parse_xml($client, $cb, $params, $args); #($url, \&parsePrograms, $cb);
+}
+
+sub parsePrograms {
+    my ($xml) = @_;
+    my @menu;
+
+    for my $title (keys %{$xml->{'programs'}->{'program'}}) {
+	$log->info(Data::Dump::dump($title));
+	my $id = $xml->{'programs'}->{'program'}->{$title}->{'id'};
+	my $url = 'http://api.sr.se/api/v2/broadcasts?programid=' . $id;
+	$log->info(Data::Dump::dump($id));
+	push @menu, {name        => $title,
+		     url         => \&fetch_and_parse_xml,
+		     passthrough =>
+			 [{
+			     parse_fun => \&parseProgram,
+			     url       => $url,
+			  }]
+	};
+    }
+    return @menu;
+}
+
+
+    
     #DOES NOT WORK! (ie no printout) maybe must be called from a ProtocolHandler.pm?
     #both iPlayer and Qubuz does it like that...!!
     # NEXT -> try fix a protocol handler
@@ -64,34 +87,69 @@ sub handleFeed {
     # Fungerade efter att jag fattat att denna metod inte kördes...
     # Jag tror att man borde göra som BBCXMLParser.pm! blir nog jättebra
     # Men varför behöver man då en protocol handler??????
-    my $http = Slim::Networking::SimpleAsyncHTTP->new(
-		sub {
-		    my $response = shift;
+#    my $http = Slim::Networking::SimpleAsyncHTTP->new(
+#		sub {
+#		    my $response = shift;
 
-		    my @menu = parseXMLprograms($response);
-		    $log->info(Data::Dump::dump(@menu));
+#		    my @menu = parseXMLprograms($response, $cb);
+#		    $log->info(Data::Dump::dump(@menu));
 
 #		    my $items = [{name => "filflflfle",
 #				  play => 'http://sverigesradio.se/topsy/ljudfil/4381232.mp3',
 #				  on_select => 'play'}];
-		    $cb->({
-			items => \@menu,
-			  });
+#		    $cb->({
+#			items => \@menu,
+#			  });
+#	},
+#		sub {
+#		    my ($http, $error) = @_;
+#		    $log->warn("Error: $error");
+#		},
+#		{
+#		    timeout => 15,
+#		},
+#	);
+ #   $http->get($url);
+#}
+
+sub fetch_and_parse_xml{
+    my ($client, $cb, $params, $args) = @_;
+    my $url = $args->{url};
+    my $parseFun = $args->{parse_fun};
+
+    my $http = Slim::Networking::SimpleAsyncHTTP->new(
+	sub {
+	    my $response = shift;
+	    my $xml = eval {
+		XMLin( 
+		    $response->contentRef
+		    )
+	    };
+	    my @menu = $parseFun->($xml);
+	    $log->info(Data::Dump::dump(@menu));
+	    
+	    $cb->({
+		items => \@menu,
+		  });
 	},
-		sub {
-		    my ($http, $error) = @_;
-		    $log->warn("Error: $error");
-		},
-		{
-		    timeout => 15,
-		},
+	sub {
+	    my ($http, $error) = @_;
+	    $log->warn("Error: $error");
+	},
+	{
+	    timeout => 15,
+	},
 	);
     $http->get($url);
 }
 
+
+    #($url, \&parseXMLprograms, $cb), 
+
 #####################################XMLPARSWER#####################
 sub parseXMLprograms{
     my $response   = shift;
+    my $cb = shift;
 #    $log->info("Response IN subfunction $httpResponse");
 #    $log->info(Data::Dump::dump($response));
 #    $log->info(Data::Dump::dump($response->content));
@@ -99,10 +157,10 @@ sub parseXMLprograms{
 
     my $xml = eval {
 	XMLin( 
-	    $response->contentRef,
+	    $response->contentRef
 #	    KeyAttr    =>  { program => 'id' }, #attribute translated to hash key
 #	    GroupTags  => { programs => 'program' }, # remove level 'program' from hash structure
-	    ForceArray => [ 'program' ] # GroupTags performed first so 'programs' instead of 'program'
+#	    ForceArray => [ 'program' ] # GroupTags performed first so 'programs' instead of 'program'
 #ValueAttr => [ names ] # bra?
 # ContentKey => 'keyname' # in+out - seldom used bra??
 	    )
@@ -114,10 +172,9 @@ sub parseXMLprograms{
     for my $title (keys %{$xml->{'programs'}->{'program'}}) {
 	$log->info(Data::Dump::dump($title));
 	my $id = $xml->{'programs'}->{'program'}->{$title}->{'id'};
-	my $url = 'http://api.sr.se/api/v2/broadcasts?programid=' . $id;
 	$log->info(Data::Dump::dump($id));
 	push @menu, {'name' => $title,
-		     'url'   => $url
+		     'url'   => 'http://api.sr.se/api/v2/broadcasts?programid='#\&parseProgramId($id, $cb)
 	};
     }
     return @menu;
@@ -127,6 +184,8 @@ sub parseXMLprograms{
 }
 sub parseProgramId {
     my $id = shift;
+    my $cb = shift;
+    my $url = 'http://api.sr.se/api/v2/broadcasts?programid=' . $id;
 #    'http://api.sr.se/api/v2/broadcasts?programid=3718$id};
 }
     
