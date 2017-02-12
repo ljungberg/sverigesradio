@@ -34,7 +34,6 @@ sub initPlugin {
 	    feed   => \&handleFeed, #Slim::Utils::Misc::fileURLFromPath($file), #\&handleFeed, #
 	    tag    => 'sverigesradio',
 	    #		node   => 'myMusic', what does the node argument do?
-	    #		node   => 'home',
 	    #		is_app => 1, #this makes the app apear in 'extras'...
 	    menu   => 'radios', # menu=radios and is_app not set makes the app appear in home->radios...
  # can only be radios for opml based? (line 40 refer to radio.png)
@@ -47,13 +46,19 @@ sub playerMenu { }
 sub getDisplayName { 'PLUGIN_SVERIGES_RADIO_NAME' }
 sub handleFeed {
     my ($client, $cb, $params) = @_;
-## CONTINUE HERE: NEXT TROUBLESHOOT WHY HASESH NOT SENT CORRECTLY...
     my $args = {
 	parse_fun => \&parsePrograms,
-	url        => 'http://api.sr.se/api/v2/programs/index',
+	parse_fun_args => {},
+	# See http://sverigesradio.se/api/documentation/v2/metoder/program.html
+	# and http://sverigesradio.se/api/documentation/v2/generella_parametrar.html
+	# for more details on url generation
+
+	# Ask for all programs that are active and ask for everyone at once
+	url        => 'http://api.sr.se/api/v2/programs/index?isarchived=false&pagination=false'
+#http://api.sr.se/api/v2/programs?pagination=false',
+	#'http://api.sr.se/api/v2/programs/index',
 		};
-    my $url = 'http://api.sr.se/api/v2/programs/index';
-    fetch_and_parse_xml($client, $cb, $params, $args); #($url, \&parsePrograms, $cb);
+    fetch_and_parse_xml($client, $cb, $params, $args);
 }
 
 sub parsePrograms {
@@ -61,61 +66,139 @@ sub parsePrograms {
     my @menu;
 
     for my $title (keys %{$xml->{'programs'}->{'program'}}) {
-	$log->info(Data::Dump::dump($title));
 	my $id = $xml->{'programs'}->{'program'}->{$title}->{'id'};
-	my $url = 'http://api.sr.se/api/v2/broadcasts?programid=' . $id;
-	$log->info(Data::Dump::dump($id));
+	my $imageUrl = $xml->{'programs'}->{'program'}->{$title}->{'programimage'};
+	my $url = 'http://api.sr.se/api/v2/podfiles?programid=' . $id;
+#	my $url = 'http://api.sr.se/api/v2/broadcasts?programid=' . $id;
+#next sort + remove unused programs...
 	push @menu, {name        => $title,
 		     url         => \&fetch_and_parse_xml,
 		     passthrough =>
 			 [{
-			     parse_fun => \&parseProgram,
+			     parse_fun => \&parseProgramPods,#\&parseProgramBroadcasts,
+			     parse_fun_args  => {image_url => $imageUrl},
+			     url       => $url
+			  }]
+	};
+	@menu = sort { $a->{name} cmp $b->{name} } @menu;
+    }
+    return @menu;
+}
+sub parseProgramPod {
+    my ($xml, $args) = @_;
+    my $imageUrl = $args->{image_url};
+    my @menu;
+    
+    my $title = $xml->{'podfile'}->{'title'};
+    my $duration = $xml->{'podfile'}->{'duration'};
+    my $description = $xml->{'podfile'}->{'description'};
+    my $url = $xml->{'podfile'}->{'url'};
+    
+    # fetch image from layer above with args passthrough somehow? since it is not part of podfile or fetch it again at this level? but then parse a xml again...
+
+    # NEXT WHY DOES IT NOT PLAY? WHY DID I NOT SUBMIT LAST GIT ;(
+    
+    push @menu, {name  => $title, #TODO how many chars can radio display? devide it into name2?
+		 line1 => $description,#TODO how many chars can radio display? devide it into line2?
+		 icon => $imageUrl,
+		 type => 'audio',
+		 play  => $url,
+		 duration => $duration, # SR duration is in seconds, what is squeezbox?
+		 on_select => 'play'
+    };
+    $log->info(Data::Dump::dump(@menu));
+    return @menu;
+}
+# SR verkar ha fixat så stream av pod ej fungerar utan förväntar sig att motagaren skall ta hela.
+# Man kan kanske använda saveAs i HTTP.p. (Slim/Networking/Async/HTTP) eller öka bufferstorleken
+# i HTTP.pm...
+# NEXT: Hur seeka i låt på squeezebox radio? Hålla in fwd o rewind!
+# Add 3rd level of indention
+# Add go to next page on programiid
+# Check xml.pm file to see what more parameters are good to set / parse
+# NEXT: favorites
+# NEXT: live channels
+# New feeds (favorites broadcast and pods list)
+#? check SR app
+sub parseProgramPods {
+    my ($xml, $args) = @_;
+    my @menu;
+#    $log->info(Data::Dump::dump($xml));
+
+# id is head element according to xml
+    for my $id (keys %{$xml->{'podfiles'}->{'podfile'}}) {
+#	my $image = $xml->{'broadcasts'}->{'broadcast'}->{$title}->{'image'};
+	my $title = $xml->{'podfiles'}->{'podfile'}->{$id}->{'title'};
+#	$log->info(Data::Dump::dump($title));
+	my $url = 'http://api.sr.se/api/v2/podfiles/' . $id;
+
+#	my $url = $xml->{'podfiles'}->{'podfile'}->{$id}->{'url'};
+#	my $duration = $xml->{'broadcasts'}->{'broadcast'}->{$id}->{'broadcastfiles'}->{'broadcastfile'}->{'duration'};
+#	$log->info(Data::Dump::dump($url));
+	push @menu, {name  => $title,
+		     url         => \&fetch_and_parse_xml,
+		     passthrough =>
+			 [{
+			     parse_fun => \&parseProgramPod,
+			     parse_fun_args => $args,
 			     url       => $url,
 			  }]
 	};
+
+#		     type => 'audio',
+		     # SR duration is in seconds, what is squeezbox?
+#		     duration => $duration,
+#		     play => $url,
+#		     on_select => 'play'
+			 # broadcasts are m4a files
+			 # can not play m4a files! since outside decoder used that does not work...
+			 #see http://forums.slimdevices.com/showthread.php?82324-Playing-m4a-%28AAC%29-with-Squeezebox-Server
     }
     return @menu;
 }
 
+sub parseProgramBroadcasts {
+    my ($xml, $args) = @_;
+    my @menu;
+#    $log->info(Data::Dump::dump($xml));
 
-    
-    #DOES NOT WORK! (ie no printout) maybe must be called from a ProtocolHandler.pm?
-    #both iPlayer and Qubuz does it like that...!!
-    # NEXT -> try fix a protocol handler
-    # does we realy need protocol handler for this? not according to API.pm Qobuz...
-    # try to use same callback handling (the below has none...)
-    # Fungerade efter att jag fattat att denna metod inte kördes...
-    # Jag tror att man borde göra som BBCXMLParser.pm! blir nog jättebra
-    # Men varför behöver man då en protocol handler??????
-#    my $http = Slim::Networking::SimpleAsyncHTTP->new(
-#		sub {
-#		    my $response = shift;
+# id is head element according to xml
+    for my $id (keys %{$xml->{'broadcasts'}->{'broadcast'}}) {
+#	my $image = $xml->{'broadcasts'}->{'broadcast'}->{$title}->{'image'};
+	my $title = $xml->{'broadcasts'}->{'broadcast'}->{$id}->{'title'};
+#	$log->info(Data::Dump::dump($title));
+	# Always only one broadcastfile?
+	my $url = $xml->{'broadcasts'}->{'broadcast'}->{$id}->{'broadcastfiles'}->{'broadcastfile'}->{'url'};
+#	my $duration = $xml->{'broadcasts'}->{'broadcast'}->{$id}->{'broadcastfiles'}->{'broadcastfile'}->{'duration'};
+#	$log->info(Data::Dump::dump($url));
+	push @menu, {name        => $title,
+		     type => 'audio',
+		     # SR duration is in seconds, what is squeezbox?
+#		     duration => $duration,
+		     play => $url,
+		     on_select => 'play'
+			 # broadcasts are m4a files
+			 # can not play m4a files! since outside decoder used that does not work...
+			 #see http://forums.slimdevices.com/showthread.php?82324-Playing-m4a-%28AAC%29-with-Squeezebox-Server
+	};
+    }
+    $log->info(Data::Dump::dump(@menu));
+    return @menu;
+}
 
-#		    my @menu = parseXMLprograms($response, $cb);
-#		    $log->info(Data::Dump::dump(@menu));
+# Podfiles are mp3 so should be able to use them.
+#NEXT why only 5 xml entries for all programs?
+#because it only return 10 per page...
+# http://sverigesradio.se/api/documentation/v2/generella_parametrar.html#filter säger att man kan ha
+#http://api.sr.se/api/v2/programs?pagination=false för att få allt :)
 
-#		    my $items = [{name => "filflflfle",
-#				  play => 'http://sverigesradio.se/topsy/ljudfil/4381232.mp3',
-#				  on_select => 'play'}];
-#		    $cb->({
-#			items => \@menu,
-#			  });
-#	},
-#		sub {
-#		    my ($http, $error) = @_;
-#		    $log->warn("Error: $error");
-#		},
-#		{
-#		    timeout => 15,
-#		},
-#	);
- #   $http->get($url);
-#}
+# good resource = Slim.Web.XMLBrowser ! (handling menu entries from this)
 
 sub fetch_and_parse_xml{
     my ($client, $cb, $params, $args) = @_;
     my $url = $args->{url};
     my $parseFun = $args->{parse_fun};
+    my $parseFunArgs = $args->{parse_fun_args};
 
     my $http = Slim::Networking::SimpleAsyncHTTP->new(
 	sub {
@@ -125,8 +208,8 @@ sub fetch_and_parse_xml{
 		    $response->contentRef
 		    )
 	    };
-	    my @menu = $parseFun->($xml);
-	    $log->info(Data::Dump::dump(@menu));
+	    my @menu = $parseFun->($xml, $parseFunArgs);
+	    $log->info(Data::Dump::dump(scalar(@menu)));
 	    
 	    $cb->({
 		items => \@menu,
@@ -142,53 +225,5 @@ sub fetch_and_parse_xml{
 	);
     $http->get($url);
 }
-
-
-    #($url, \&parseXMLprograms, $cb), 
-
-#####################################XMLPARSWER#####################
-sub parseXMLprograms{
-    my $response   = shift;
-    my $cb = shift;
-#    $log->info("Response IN subfunction $httpResponse");
-#    $log->info(Data::Dump::dump($response));
-#    $log->info(Data::Dump::dump($response->content));
-#    $log->info(Data::Dump::dump($response->contentRef));
-
-    my $xml = eval {
-	XMLin( 
-	    $response->contentRef
-#	    KeyAttr    =>  { program => 'id' }, #attribute translated to hash key
-#	    GroupTags  => { programs => 'program' }, # remove level 'program' from hash structure
-#	    ForceArray => [ 'program' ] # GroupTags performed first so 'programs' instead of 'program'
-#ValueAttr => [ names ] # bra?
-# ContentKey => 'keyname' # in+out - seldom used bra??
-	    )
-    };
-#    $log->info(Data::Dump::dump($xml));
-
-    my @menu;
-
-    for my $title (keys %{$xml->{'programs'}->{'program'}}) {
-	$log->info(Data::Dump::dump($title));
-	my $id = $xml->{'programs'}->{'program'}->{$title}->{'id'};
-	$log->info(Data::Dump::dump($id));
-	push @menu, {'name' => $title,
-		     'url'   => 'http://api.sr.se/api/v2/broadcasts?programid='#\&parseProgramId($id, $cb)
-	};
-    }
-    return @menu;
-
-    # programs -> name (index)
-    #          -> program id
-}
-sub parseProgramId {
-    my $id = shift;
-    my $cb = shift;
-    my $url = 'http://api.sr.se/api/v2/broadcasts?programid=' . $id;
-#    'http://api.sr.se/api/v2/broadcasts?programid=3718$id};
-}
-    
-################################################################
 
 1;
