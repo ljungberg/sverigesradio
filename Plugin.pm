@@ -46,19 +46,76 @@ sub playerMenu { }
 sub getDisplayName { 'PLUGIN_SVERIGES_RADIO_NAME' }
 sub handleFeed {
     my ($client, $cb, $params) = @_;
-    my $args = {
-	parse_fun => \&parsePrograms,
-	parse_fun_args => {},
-	# See http://sverigesradio.se/api/documentation/v2/metoder/program.html
-	# and http://sverigesradio.se/api/documentation/v2/generella_parametrar.html
-	# for more details on url generation
+    $cb->({
+	items => [{
+	    name => "Alla Program",
+	    url  => \&fetch_and_parse_xml,
+	    passthrough =>
+		[{
+		    parse_fun => \&parsePrograms,
+		    parse_fun_args => {},
+		    # See http://sverigesradio.se/api/documentation/v2/metoder/program.html
+		    # and http://sverigesradio.se/api/documentation/v2/generella_parametrar.html
+		    # for more details on url generation
+		    
+		    # Ask for all programs that are active and ask for everyone at once
+		    url        => 'http://api.sr.se/api/v2/programs/index?isarchived=false&pagination=false'
+			#http://api.sr.se/api/v2/programs?pagination=false',
+			#'http://api.sr.se/api/v2/programs/index',
+		 }]
+		  },{
+	    name => "Kanaler",
+	    url => \&fetch_and_parse_xml,
+	    passthrough =>
+		[{
+		    parse_fun => \&parseChannels,
+		    parse_fun_args => {},
+		    url        => 'http://api.sr.se/api/v2/channels/index?pagination=false'
+		 }]
+		  }
+	    ]});
+}
 
-	# Ask for all programs that are active and ask for everyone at once
-	url        => 'http://api.sr.se/api/v2/programs/index?isarchived=false&pagination=false'
-#http://api.sr.se/api/v2/programs?pagination=false',
-	#'http://api.sr.se/api/v2/programs/index',
-		};
-    fetch_and_parse_xml($client, $cb, $params, $args);
+sub parseChannels {
+    my ($xml) = @_;
+    my @menu;
+    my %menuHash;
+    my @realmChannels;
+    
+    for my $name (keys %{$xml->{'channels'}->{'channel'}}) {
+	my $type = $xml->{'channels'}->{'channel'}->{$name}->{'channeltype'};
+	my $url = $xml->{'channels'}->{'channel'}->{$name}->{'liveaudio'}->{'url'};
+	#NEXT: put in hases then new menues
+	my $channel = {name => $name,
+		       type => 'audio',
+		       play  => $url,
+		       on_select => 'play'
+	};
+	if ($type eq "Rikskanal") {
+	    push @realmChannels, $channel;
+	}
+	elsif (not exists $menuHash{$type}) {
+	    @menuHash{$type} = [$channel];
+	}
+	else
+	{
+	    push @{%menuHash{$type}}, $channel;
+	}
+    }
+    $log->info(Data::Dump::dump(%menuHash));
+    for my $radioType (keys %menuHash) {
+	push @menu, {name => $radioType,
+		     items => $menuHash{$radioType}};
+    }
+
+    @menu = sort { $a->{name} cmp $b->{name} } @menu;
+    @realmChannels = sort { $a->{name} cmp $b->{name} } @realmChannels;
+    $log->info(Data::Dump::dump(@realmChannels));
+ #   $log->info(Data::Dump::dump(@menu));
+    push( @realmChannels, @menu);
+    $log->info(Data::Dump::dump(@realmChannels));
+#NEXT favorites ('save' in menu) for channelse
+    return @realmChannels;
 }
 
 sub parsePrograms {
