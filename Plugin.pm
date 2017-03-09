@@ -7,10 +7,14 @@ package Plugins::SverigesRadio::Plugin;
 
 use strict;
 use base qw(Slim::Plugin::OPMLBased);
+
 use File::Spec::Functions qw(catdir);
 use Slim::Utils::Log;
 use Slim::Networking::SimpleAsyncHTTP;
 use XML::Simple;
+
+use Slim::Player::ProtocolHandlers;
+use Plugins::SverigesRadio::ProtocolHandler;
 
 use Data::Dumper;
 
@@ -24,8 +28,14 @@ my $log = Slim::Utils::Log->addLogCategory( {
 sub initPlugin {
 	my $class = shift;
 
-	my $file = catdir( $class->_pluginDataFor('basedir'), 'menu.opml' );
-
+#	my $file = catdir( $class->_pluginDataFor('basedir'), 'menu.opml' );#TODO LOG THE PROTOCOL HANDLER TO SEE IF IT SWITCHES ON sverigesradio
+	Slim::Player::ProtocolHandlers->registerHandler(
+		sverigesradio => 'Plugins::SverigesRadio::ProtocolHandler'
+	);
+#	Slim::Player::ProtocolHandlers->registerIconHandler(
+#		qr|\.sr\.se/|, 
+#		sub { $class->_pluginDataFor('icon') }
+#	);
 #	Slim::Player::ProtocolHandlers->registerHandler(
 #		sverigesrad io => 'Plugins::SverigesRadio::ProtocolHandler'
 #	); 
@@ -125,6 +135,8 @@ sub parsePrograms {
     for my $title (keys %{$xml->{'programs'}->{'program'}}) {
 	my $id = $xml->{'programs'}->{'program'}->{$title}->{'id'};
 	my $imageUrl = $xml->{'programs'}->{'program'}->{$title}->{'programimage'};
+#TEST
+#	my $url = 'sverigesradio://api.sr.se/api/v2/podfiles?programid=' . $id;
 	my $url = 'http://api.sr.se/api/v2/podfiles?programid=' . $id;
 #	my $url = 'http://api.sr.se/api/v2/broadcasts?programid=' . $id;
 #next sort + remove unused programs...
@@ -141,6 +153,11 @@ sub parsePrograms {
     }
     return @menu;
 }
+sub http2SRHandler {
+    my $url = shift;
+    'sverigesradio://' . substr($url, 7);#test
+}
+
 sub parseProgramPod {
     my ($xml, $args) = @_;
     my $imageUrl = $args->{image_url};
@@ -159,7 +176,7 @@ sub parseProgramPod {
 		 line1 => $description,#TODO how many chars can radio display? devide it into line2?
 		 icon => $imageUrl,
 		 type => 'audio',
-		 play  => $url,
+		 play  => http2SRHandler($url),#'sverigesradio://' . $url, #test
 		 duration => $duration, # SR duration is in seconds, what is squeezbox?
 		 on_select => 'play'
     };
