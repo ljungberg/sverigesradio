@@ -17,6 +17,7 @@ use Slim::Player::ProtocolHandlers;
 use Plugins::SverigesRadio::ProtocolHandler;
 
 use Data::Dumper;
+use LWP::UserAgent;
 
 my $log = Slim::Utils::Log->addLogCategory( {
 	category     => 'plugin.sverigesradio',
@@ -112,7 +113,7 @@ sub parseChannels {
 	    push @{%menuHash{$type}}, $channel;
 	}
     }
-    $log->info(Data::Dump::dump(%menuHash));
+#    $log->info(Data::Dump::dump(%menuHash));
     for my $radioType (keys %menuHash) {
 	push @menu, {name => $radioType,
 		     items => $menuHash{$radioType}};
@@ -120,7 +121,7 @@ sub parseChannels {
 
     @menu = sort { $a->{name} cmp $b->{name} } @menu;
     @realmChannels = sort { $a->{name} cmp $b->{name} } @realmChannels;
-    $log->info(Data::Dump::dump(@realmChannels));
+#    $log->info(Data::Dump::dump(@realmChannels));
  #   $log->info(Data::Dump::dump(@menu));
     push( @realmChannels, @menu);
     $log->info(Data::Dump::dump(@realmChannels));
@@ -154,10 +155,22 @@ sub parsePrograms {
     return @menu;
 }
 sub http2SRHandler {
+#    sleep 5;
     my $url = shift;
-    'sverigesradio://' . substr($url, 7);#test
+#    'sverigesradio://' . substr($url, 7);#test
+#    $url;
+    my $filename = '/tmp/SverigesRadio_tmp_pod.mp3';
+    download($url, $filename);
+    #    'tmp://tmp/sample.mp3';
+    'tmp://' . $filename;
 }
-
+sub download {
+    my $url = shift;
+    my $filename = shift;
+    my $ua = LWP::UserAgent->new;
+    my $req = HTTP::Request->new(GET => $url);
+    my $res = $ua->request($req, $filename);    
+}
 sub parseProgramPod {
     my ($xml, $args) = @_;
     my $imageUrl = $args->{image_url};
@@ -180,7 +193,7 @@ sub parseProgramPod {
 		 duration => $duration, # SR duration is in seconds, what is squeezbox?
 		 on_select => 'play'
     };
-    $log->info(Data::Dump::dump(@menu));
+#    $log->info(Data::Dump::dump(@menu));
     return @menu;
 }
 # SR verkar ha fixat så stream av pod ej fungerar utan förväntar sig att motagaren skall ta hela.
@@ -205,6 +218,7 @@ sub parseProgramPods {
 	my $title = $xml->{'podfiles'}->{'podfile'}->{$id}->{'title'};
 #	$log->info(Data::Dump::dump($title));
 	my $url = 'http://api.sr.se/api/v2/podfiles/' . $id;
+#	$log->info(Data::Dump::dump($url));
 
 #	my $url = $xml->{'podfiles'}->{'podfile'}->{$id}->{'url'};
 #	my $duration = $xml->{'broadcasts'}->{'broadcast'}->{$id}->{'broadcastfiles'}->{'broadcastfile'}->{'duration'};
@@ -228,6 +242,11 @@ sub parseProgramPods {
 			 # can not play m4a files! since outside decoder used that does not work...
 			 #see http://forums.slimdevices.com/showthread.php?82324-Playing-m4a-%28AAC%29-with-Squeezebox-Server
     }
+    # Strange, menu items have to be sorted on name it seems...
+    # (otherwise it does not work to select in player GUI, it choose another item then the displayed one)
+    #NEXT add date and sort according to date...
+    @menu = sort { $a->{name} cmp $b->{name} } @menu;
+#    $log->info(Data::Dump::dump(@menu));
     return @menu;
 }
 
@@ -256,7 +275,8 @@ sub parseProgramBroadcasts {
 			 #see http://forums.slimdevices.com/showthread.php?82324-Playing-m4a-%28AAC%29-with-Squeezebox-Server
 	};
     }
-    $log->info(Data::Dump::dump(@menu));
+    @menu = sort { $a->{name} cmp $b->{name} } @menu;
+#    $log->info(Data::Dump::dump(@menu));
     return @menu;
 }
 
@@ -271,6 +291,7 @@ sub parseProgramBroadcasts {
 sub fetch_and_parse_xml{
     my ($client, $cb, $params, $args) = @_;
     my $url = $args->{url};
+#    $log->info(Data::Dump::dump($url));
     my $parseFun = $args->{parse_fun};
     my $parseFunArgs = $args->{parse_fun_args};
 
@@ -283,7 +304,7 @@ sub fetch_and_parse_xml{
 		    )
 	    };
 	    my @menu = $parseFun->($xml, $parseFunArgs);
-	    $log->info(Data::Dump::dump(scalar(@menu)));
+#	    $log->info(Data::Dump::dump(scalar(@menu)));
 	    
 	    $cb->({
 		items => \@menu,
