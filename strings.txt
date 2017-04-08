@@ -1,6 +1,26 @@
 PLUGIN_SVERIGES_RADIO_NAME
 	EN	Sveriges Radio
 	SV	Sveriges Radio
+PLUGIN_SVERIGES_RADIO_DESC
+	EN	Listen to live Swedish Radio channels or listen to past Swedish Radio programs with music (broadcasts) or without (pods).
+	SV	Sveriges Radio
+
+PLUGIN_SVERIGES_RADIO_PREFS
+	EN	Preferences
+	SV	Sveriges Radio
+PLUGIN_SVERIGES_RADIO_PREFS_PROGRAM_FILTER
+	EN	Sveriges Radio Program Filter
+	SV	Sveriges Radio
+PLUGIN_SVERIGES_RADIO_PREFS_PROGRAM_FILTER_DSC
+	EN	Custom filter string to use in API call to Sveriges Radio when fetching programs (more information can be found at http://sverigesradio.se/api/documentation/v2/metoder/program.html)
+	SV	Sveriges Radio
+PLUGIN_SVERIGES_RADIO_PREFS_PROGRAM_FAVORITES
+	EN	Sveriges Radio Program Favorites
+	SV	Sveriges Radio
+PLUGIN_SVERIGES_RADIO_PREFS_PROGRAM_FAVORITES_DSC
+	EN	A semi-colon separated list of program titles that should appear under "Home > Sveriges Radio > Favorites" menu.
+	SV	Sveriges Radio
+
 PLUGIN_SVERIGES_RADIO_NAME_DESC
 	EN	Sveriges Radio
 	SV	Sveriges Radio

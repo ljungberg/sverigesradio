@@ -1,0 +1,13 @@
+[% PROCESS settings/header.html %]
+
+	[% WRAPPER setting title="PLUGIN_SVERIGES_RADIO_NAME" desc="" %]
+		<div class="prefDesc">[% "PLUGIN_SVERIGES_RADIO_PREFS" | string %]</div>
+	[% END %]
+
+	[% WRAPPER settingSection %]
+		[% WRAPPER settingGroup title="PLUGIN_SVERIGES_RADIO_PREFS_PROGRAM_FILTER" desc="PLUGIN_SVERIGES_RADIO_PREFS_PROGRAM_FILTER_DSC" %]<input type="text" class="stdedit" name="programFilter" id="programFilter" value="[% prefs.programFilter %]" size="30" />[% END %]
+		[% WRAPPER settingGroup title="PLUGIN_SVERIGES_RADIO_PREFS_PROGRAM_FAVORITES" desc="PLUGIN_SVERIGES_RADIO_PREFS_PROGRAM_FAVORITES_DSC" %]<input type="programFavorites" class="stdedit" name="programFavorites" id="programFavorites" value="[% prefs.programFavorites %]" size="80" />[% END %]
+
+	[% END %]
+
+[% PROCESS settings/footer.html %]

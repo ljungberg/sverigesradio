@@ -1,15 +1,16 @@
 package Plugins::SverigesRadio::Plugin;
 
-# $Id$
-#  335  sudo service logitechmediaserver restart
-#  336  sudo chown -R squeezeboxserver SverigesRadio/
-#sudo squeezeboxserver --debug plugin.sverigesradio=INFO,persist
+
+# sudo service logitechmediaserver restart
+# sudo chown -R squeezeboxserver SverigesRadio/
+# sudo squeezeboxserver --debug plugin.sverigesradio=INFO,persist
 
 use strict;
 use base qw(Slim::Plugin::OPMLBased);
 
 use File::Spec::Functions qw(catdir);
 use Slim::Utils::Log;
+use Slim::Utils::Prefs;
 use Slim::Networking::SimpleAsyncHTTP;
 use XML::Simple;
 
@@ -26,9 +27,27 @@ my $log = Slim::Utils::Log->addLogCategory( {
 	description  => 'PLUGIN_SVERIGES_RADIO',
 } );
 
+my $prefs = preferences('plugin.sverigesradio');
+
+# default values for settings?
+	# If the page is just being displayed initially, then this puts the current value found in prefs on the page.
+# so mayby try to set them in initPlugin?
+
+# list of things
+#	my @newLibraries = split(/;/, $prefs->get('libraries')); from simple library view
+
+# how to use?
+#??
+# add favorite channels
+
+
 sub initPlugin {
 	my $class = shift;
 
+	if (main::WEBUI) {
+		require Plugins::SverigesRadio::Settings;
+		Plugins::SverigesRadio::Settings->new();
+	}
 #	my $file = catdir( $class->_pluginDataFor('basedir'), 'menu.opml' );#TODO LOG THE PROTOCOL HANDLER TO SEE IF IT SWITCHES ON sverigesradio
 	Slim::Player::ProtocolHandlers->registerHandler(
 		sverigesradio => 'Plugins::SverigesRadio::ProtocolHandler'
@@ -55,6 +74,71 @@ sub initPlugin {
 # Don't add this item to any menu
 sub playerMenu { }
 sub getDisplayName { 'PLUGIN_SVERIGES_RADIO_NAME' }
+sub generate_favorite_programs {
+    my ($client, $cb, $params, $args) = @_;
+    my @ProgramAndIds = $prefs->get('FavoriteIds');#split(/;/, $prefs->get('programFavorites'));
+    my @menu;
+    $log->info(Data::Dump::dump(@ProgramAndIds));
+
+    for my $Favorite (@ProgramAndIds)
+    {
+	$log->info(Data::Dump::dump($Favorite));
+	my %ProgramAndId =  $Favorite;
+	$log->info(Data::Dump::dump(%ProgramAndId));
+	
+	push @menu, {name        => $Favorite->{"title"},
+		     url         => \&fetch_and_parse_xml,
+		     passthrough =>
+			 [{
+			     parse_fun => \&parseProgramPods,#\&parseProgramBroadcasts,
+			     parse_fun_args  => {},
+			     #TODO MUST LOOKUP ID WHEN SAVING PREFERENCES ALSO!!
+			     url => 'http://api.sr.se/api/v2/podfiles?programid=' . $Favorite->{"id"}
+#			     url       => 'http://api.sr.se/api/v2/programs/' .  $Favorite->{"id"}
+			  }]
+	};	
+    }
+    $log->info(Data::Dump::dump(@menu));
+	    $cb->({
+		items => \@menu,
+		  });
+}
+
+sub lookupAndSetFavoriteIds {
+    my $url = 'http://api.sr.se/api/v2/programs/index?isarchived=false&pagination=false';
+    my @Titles = split(/;/, $prefs->get('programFavorites'));
+    my @TitleAndIds = ();
+    
+    my $http = Slim::Networking::SimpleAsyncHTTP->new(
+	sub {
+	    my $response = shift;
+	    my $xml = eval {
+		XMLin( 
+		    $response->contentRef
+		    )
+	    };
+	    for my $Title (@Titles) {
+		my $id = $xml->{'programs'}->{'program'}->{$Title}->{'id'};
+		push @TitleAndIds,
+		{title => $Title,
+		 id    => $id
+		}
+	    }
+	    $prefs->set('FavoriteIds', @TitleAndIds);
+	},
+	sub {
+	    my ($http, $error) = @_;
+	    $log->warn("Error: $error");
+	},
+	{
+	    timeout => 15,
+	},
+	);
+    $http->get($url);
+    #TODO: FIX THIS FUNCTION IT IS BLOOKING TO...
+#    ({title => "Dagens dikt",
+#     id => 2031})
+}
 sub handleFeed {
     my ($client, $cb, $params) = @_;
     $cb->({
@@ -75,14 +159,17 @@ sub handleFeed {
 			#'http://api.sr.se/api/v2/programs/index',
 		 }]
 		  },{
-	    name => "Kanaler",
-	    url => \&fetch_and_parse_xml,
-	    passthrough =>
-		[{
-		    parse_fun => \&parseChannels,
-		    parse_fun_args => {},
-		    url        => 'http://api.sr.se/api/v2/channels/index?pagination=false'
-		 }]
+		      name => "Favorit Program",
+		      url => \&generate_favorite_programs
+		  },{
+		      name => "Kanaler",
+		      url => \&fetch_and_parse_xml,
+		      passthrough =>
+			  [{
+			      parse_fun => \&parseChannels,
+			      parse_fun_args => {},
+			      url        => 'http://api.sr.se/api/v2/channels/index?pagination=false'
+			   }]
 		  }
 	    ]});
 }
@@ -133,6 +220,9 @@ sub parsePrograms {
     my ($xml) = @_;
     my @menu;
 
+    $log->info(Data::Dump::dump($prefs->get('programFilter')));
+    $log->info(Data::Dump::dump($prefs->get('programFavorites')));
+
     for my $title (keys %{$xml->{'programs'}->{'program'}}) {
 	my $id = $xml->{'programs'}->{'program'}->{$title}->{'id'};
 	my $imageUrl = $xml->{'programs'}->{'program'}->{$title}->{'programimage'};
@@ -155,14 +245,25 @@ sub parsePrograms {
     return @menu;
 }
 sub http2SRHandler {
-#    sleep 5;
+    #NEXT it does not work when the 'last' file is open (which will be when the player starts at last track) so file is open when we try to write to it etc
+    # Remove All old files
+    unlink glob "/tmp/SverigesRadio_tmp_*";
     my $url = shift;
 #    'sverigesradio://' . substr($url, 7);#test
 #    $url;
-    my $filename = '/tmp/SverigesRadio_tmp_pod.mp3';
+    # use timestamp in name so name is unique
+    my $timestamp = getLoggingTime();
+    my $filename = '/tmp/SverigesRadio_tmp_'. $timestamp . 'pod.mp3';
     download($url, $filename);
     #    'tmp://tmp/sample.mp3';
     'tmp://' . $filename;
+}
+sub getLoggingTime {
+
+    my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)=localtime(time);
+    my $nice_timestamp = sprintf ( "%04d%02d%02d %02d:%02d:%02d",
+                                   $year+1900,$mon+1,$mday,$hour,$min,$sec);
+    return $nice_timestamp;
 }
 sub download {
     my $url = shift;
@@ -183,7 +284,6 @@ sub parseProgramPod {
     
     # fetch image from layer above with args passthrough somehow? since it is not part of podfile or fetch it again at this level? but then parse a xml again...
 
-    # NEXT WHY DOES IT NOT PLAY? WHY DID I NOT SUBMIT LAST GIT ;(
     
     push @menu, {name  => $title, #TODO how many chars can radio display? devide it into name2?
 		 line1 => $description,#TODO how many chars can radio display? devide it into line2?
@@ -210,7 +310,7 @@ sub parseProgramPod {
 sub parseProgramPods {
     my ($xml, $args) = @_;
     my @menu;
-#    $log->info(Data::Dump::dump($xml));
+    $log->info(Data::Dump::dump($xml));
 
 # id is head element according to xml
     for my $id (keys %{$xml->{'podfiles'}->{'podfile'}}) {
