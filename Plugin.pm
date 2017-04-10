@@ -76,25 +76,22 @@ sub playerMenu { }
 sub getDisplayName { 'PLUGIN_SVERIGES_RADIO_NAME' }
 sub generate_favorite_programs {
     my ($client, $cb, $params, $args) = @_;
-    my @ProgramAndIds = $prefs->get('FavoriteIds');#split(/;/, $prefs->get('programFavorites'));
+    my @ProgramAndIds = split(';' , $prefs->get('FavoriteIds'));#split(/;/, $prefs->get('programFavorites'));
     my @menu;
     $log->info(Data::Dump::dump(@ProgramAndIds));
 
     for my $Favorite (@ProgramAndIds)
     {
+	my ($Title, $id) = split(':', $Favorite);
 	$log->info(Data::Dump::dump($Favorite));
-	my %ProgramAndId =  $Favorite;
-	$log->info(Data::Dump::dump(%ProgramAndId));
 	
-	push @menu, {name        => $Favorite->{"title"},
+	push @menu, {name        => $Title,
 		     url         => \&fetch_and_parse_xml,
 		     passthrough =>
 			 [{
-			     parse_fun => \&parseProgramPods,#\&parseProgramBroadcasts,
+			     parse_fun => \&parseProgramPods,
 			     parse_fun_args  => {},
-			     #TODO MUST LOOKUP ID WHEN SAVING PREFERENCES ALSO!!
-			     url => 'http://api.sr.se/api/v2/podfiles?programid=' . $Favorite->{"id"}
-#			     url       => 'http://api.sr.se/api/v2/programs/' .  $Favorite->{"id"}
+			     url => 'http://api.sr.se/api/v2/podfiles?programid=' . $id
 			  }]
 	};	
     }
@@ -104,9 +101,18 @@ sub generate_favorite_programs {
 		  });
 }
 
+# Keep information in a textstring, since I'm unsure how hashes
+# and array's are managed in the Pref module between sessions
+# (for example when 'set' ing an array only the first element
+# seem to be 'set')
+#
+# Instead keep the infomation in the following format:
+# "Title:Id;NextTitle:NextId" etc.
 sub lookupAndSetFavoriteIds {
+    my ($class, $cb, $ProgramFavorites) = @_;
+    $log->info(Data::Dump::dump($ProgramFavorites));
     my $url = 'http://api.sr.se/api/v2/programs/index?isarchived=false&pagination=false';
-    my @Titles = split(/;/, $prefs->get('programFavorites'));
+    my @Titles = split(/;/, $ProgramFavorites);
     my @TitleAndIds = ();
     
     my $http = Slim::Networking::SimpleAsyncHTTP->new(
@@ -119,12 +125,14 @@ sub lookupAndSetFavoriteIds {
 	    };
 	    for my $Title (@Titles) {
 		my $id = $xml->{'programs'}->{'program'}->{$Title}->{'id'};
-		push @TitleAndIds,
-		{title => $Title,
-		 id    => $id
-		}
+		my $Program = $Title . ':' . $id;
+		push @TitleAndIds, ($Title . ':' . $id);
 	    }
-	    $prefs->set('FavoriteIds', @TitleAndIds);
+	    $log->info(Data::Dump::dump(@TitleAndIds));
+	    # For some reasons the set method only sets the first hash in the array
+	    # so 'join' is a workaround...
+	    $prefs->set('FavoriteIds', join(';', @TitleAndIds));
+	    $log->info(Data::Dump::dump($prefs->get('FavoriteIds')));
 	},
 	sub {
 	    my ($http, $error) = @_;

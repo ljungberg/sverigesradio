@@ -39,7 +39,7 @@ sub handler {
 			$prefs->set('programFavorites', $params->{'programFavorites'});
 			$log->info(Data::Dump::dump($params->{'programFavorites'}));
 
-			Plugins::SverigesRadio::Plugin->lookupAndSetFavoriteIds($prefs, $params->{'programFavorites'});
+			Plugins::SverigesRadio::Plugin->lookupAndSetFavoriteIds($params->{'programFavorites'});
 		}
 		
 	}
