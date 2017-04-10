@@ -143,6 +143,8 @@ sub lookupAndSetFavoriteIds {
 	);
     $http->get($url);
 }
+# refactor above with this func:
+#sub fetchXmlByAsyncHttp(URL,XmlSuccessCallback)
 
 sub handleFeed {
     my ($client, $cb, $params) = @_;
