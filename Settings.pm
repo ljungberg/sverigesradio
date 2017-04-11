@@ -39,9 +39,13 @@ sub handler {
 			$prefs->set('programFavorites', $params->{'programFavorites'});
 			$log->info(Data::Dump::dump($params->{'programFavorites'}));
 
-			Plugins::SverigesRadio::Plugin->lookupAndSetFavoriteIds($prefs, $params->{'programFavorites'});
+			Plugins::SverigesRadio::Plugin->lookupAndSetFavoriteIds($params->{'programFavorites'});
 		}
 		
+		if ($params->{'channelFavorites'} ) {
+		    $prefs->set('channelFavorites', $params->{'channelFavorites'});
+		    $log->info(Data::Dump::dump($params->{'channelFavorites'}));
+		}	
 	}
 	
 	# This puts the value on the webpage. 
@@ -50,7 +54,8 @@ sub handler {
 	# add a leading space to make the message display nicely
 	$params->{'prefs'}->{'programFilter'} = $prefs->get('programFilter');
 	$params->{'prefs'}->{'programFavorites'} = $prefs->get('programFavorites');
-	# TODO: lookup each program title and fetch korrespondig ID
+	$params->{'prefs'}->{'channelFavorites'} = $prefs->get('channelFavorites');
+
 	# I have no idea what this does, but it seems important and it's not plugin-specific.
 	return $class->SUPER::handler($client, $params);
 }

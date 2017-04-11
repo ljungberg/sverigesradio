@@ -20,6 +20,12 @@ PLUGIN_SVERIGES_RADIO_PREFS_PROGRAM_FAVORITES
 PLUGIN_SVERIGES_RADIO_PREFS_PROGRAM_FAVORITES_DSC
 	EN	A semi-colon separated list of program titles that should appear under "Home > Sveriges Radio > Favorites" menu.
 	SV	Sveriges Radio
+PLUGIN_SVERIGES_RADIO_PREFS_CHANNEL_FAVORITES
+	EN	Sveriges Radio Channel Favorites
+	SV	Sveriges Radio
+PLUGIN_SVERIGES_RADIO_PREFS_CHANNEL_FAVORITES_DSC
+	EN	A semi-colon separated list of channel titles that should appear under "Home > Sveriges Radio > Channels" menu.
+	SV	Sveriges Radio
 
 PLUGIN_SVERIGES_RADIO_NAME_DESC
 	EN	Sveriges Radio

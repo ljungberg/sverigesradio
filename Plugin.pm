@@ -20,6 +20,8 @@ use Plugins::SverigesRadio::ProtocolHandler;
 use Data::Dumper;
 use LWP::UserAgent;
 
+use Encode;
+
 my $log = Slim::Utils::Log->addLogCategory( {
 	category     => 'plugin.sverigesradio',
 	defaultLevel => 'INFO',
@@ -109,7 +111,8 @@ sub generate_favorite_programs {
 # Instead keep the infomation in the following format:
 # "Title:Id;NextTitle:NextId" etc.
 sub lookupAndSetFavoriteIds {
-    my ($class, $cb, $ProgramFavorites) = @_;
+    my ($class, $ProgramFavorites) = @_;
+    $log->info(Data::Dump::dump($class));
     $log->info(Data::Dump::dump($ProgramFavorites));
     my $url = 'http://api.sr.se/api/v2/programs/index?isarchived=false&pagination=false';
     my @Titles = split(/;/, $ProgramFavorites);
@@ -143,6 +146,8 @@ sub lookupAndSetFavoriteIds {
 	);
     $http->get($url);
 }
+# refactor above with this func:
+#sub fetchXmlByAsyncHttp(URL,XmlSuccessCallback)
 
 sub handleFeed {
     my ($client, $cb, $params) = @_;
@@ -184,7 +189,13 @@ sub parseChannels {
     my @menu;
     my %menuHash;
     my @realmChannels;
-    
+    # use decode to handle åäö correctly
+#Radioapans knattekanal"
+#    my @favoriteChannels =(decode('utf8', "P4 Väst") );#("P4 V\xE4st"); #("P4 Väst");# split(/;/, $ChannelFavorites);
+    #    my @favoriteChannels = split(';', decode('utf8', $prefs->get('channelFavorites')));
+    my @favoriteChannels = split(';', $prefs->get('channelFavorites'));
+    $log->info(Data::Dump::dump(@favoriteChannels));
+
     for my $name (keys %{$xml->{'channels'}->{'channel'}}) {
 	my $type = $xml->{'channels'}->{'channel'}->{$name}->{'channeltype'};
 	my $url = $xml->{'channels'}->{'channel'}->{$name}->{'liveaudio'}->{'url'};
@@ -194,7 +205,7 @@ sub parseChannels {
 		       play  => $url,
 		       on_select => 'play'
 	};
-	if ($type eq "Rikskanal") {
+	if ( ($type eq "Rikskanal") || grep(/^$name$/, @favoriteChannels) ) {
 	    push @realmChannels, $channel;
 	}
 	elsif (not exists $menuHash{$type}) {
