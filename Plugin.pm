@@ -122,12 +122,17 @@ sub handleFeed {
 		    url => \&generate_favorite_programs
 	  },{
 		      name => cstring($client, 'PLUGIN_SVERIGES_RADIO_LATEST_SHORT_NEWS'),
+		      #See http://sverigesradio.se/api/documentation/v2/metoder/ljud.html
 		      play => 'http://sverigesradio.se/api/radio/radio.aspx?type=latestbroadcast&id=4540&codingformat=.m4a&metafile=m3u',
 		      on_select => 'play',
 		      type => 'audio'
 		  },{
 		      name => cstring($client, 'PLUGIN_SVERIGES_RADIO_LATEST_MEDIUM_NEWS'),
-		      play => 'http://sverigesradio.se/api/radio/radio.aspx?type=latestbroadcast&id=4540&codingformat=.m4a&metafile=m3u',
+		      # Since 'short' hourly EKO broadcasts are not kept as pod files
+		      # asking for the latest EKO pod file will result in last 'big' news
+		      # package
+		      # See http://sverigesradio.se/sida/artikel.aspx?programid=3756&artikel=3498476 for more details
+		      play => 'http://sverigesradio.se/topsy/senastepodd/3795.mp3',
 		      on_select => 'play',
 		      type => 'audio'
 		  },
