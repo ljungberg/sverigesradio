@@ -78,22 +78,24 @@ sub playerMenu { }
 sub getDisplayName { 'PLUGIN_SVERIGES_RADIO_NAME' }
 sub generate_favorite_programs {
     my ($client, $cb, $params, $args) = @_;
-    my @ProgramAndIds = split(';' , $prefs->get('FavoriteIds'));#split(/;/, $prefs->get('programFavorites'));
+    #    my @ProgramAndIds = split(';' , $prefs->get('FavoriteIds'));#split(/;/, $prefs->get('programFavorites'));
+    my $FavoritesRef = $prefs->get('FavoriteIds');
     my @menu;
-    $log->info(Data::Dump::dump(@ProgramAndIds));
+    $log->info(Data::Dump::dump(@$FavoritesRef));
 
-    for my $Favorite (@ProgramAndIds)
+    for my $Favorite (@$FavoritesRef)
     {
-	my ($Title, $id) = split(':', $Favorite);
+#	my ($Title, $id, $iconUrl) = split(':', $Favorite);
 	$log->info(Data::Dump::dump($Favorite));
 	
-	push @menu, {name        => $Title,
+	push @menu, {name        => $Favorite->{'title'},#$Title,
+		     icon        => $Favorite->{'icon'},#$iconUrl,
 		     url         => \&fetch_and_parse_xml,
 		     passthrough =>
 			 [{
 			     parse_fun => \&parseProgramPods,
 			     parse_fun_args  => {},
-			     url => 'http://api.sr.se/api/v2/podfiles?programid=' . $id
+			     url => 'http://api.sr.se/api/v2/podfiles?programid=' . $Favorite->{'id'}#$id
 			  }]
 	};	
     }
@@ -109,7 +111,7 @@ sub generate_favorite_programs {
 # seem to be 'set')
 #
 # Instead keep the infomation in the following format:
-# "Title:Id;NextTitle:NextId" etc.
+# "Title:Id:IconUrl;NextTitle:NextId:NextIconUrl" etc.
 sub lookupAndSetFavoriteIds {
     my ($class, $ProgramFavorites) = @_;
     $log->info(Data::Dump::dump($class));
@@ -128,12 +130,20 @@ sub lookupAndSetFavoriteIds {
 	    };
 	    for my $Title (@Titles) {
 		my $id = $xml->{'programs'}->{'program'}->{$Title}->{'id'};
-		push @Programs, ($Title . ':' . $id);
+		my $iconUrl = $xml->{'programs'}->{'program'}->{$Title}->{'programimage'};
+
+		push @Programs, {title => $Title,
+				 id    => $id,
+				 icon  => $iconUrl};
+#		push @Programs, ($Title . ':' . $id . ':' . $iconUrl);
+# NEXT MAKE A HASH AND SET THE ADDRESS TO THE ARRAY! instead of using ; and :
+#		$prefs->set('remoteLMS', \@array);
 	    }
 
 	    # For some reasons the set method only sets the first hash in the array
 	    # so 'join' is a workaround...
-	    $prefs->set('FavoriteIds', join(';', @Programs));
+	    $prefs->set('FavoriteIds', \@Programs);
+#	    $prefs->set('FavoriteIds', join(';', @Programs));
 	    $log->info(Data::Dump::dump($prefs->get('FavoriteIds')));
 	},
 	sub {
@@ -335,11 +345,13 @@ sub parseProgramPods {
 #	$log->info(Data::Dump::dump($title));
 	my $url = 'http://api.sr.se/api/v2/podfiles/' . $id;
 #	$log->info(Data::Dump::dump($url));
-
+	my $publishDate = $xml->{'podfiles'}->{'podfile'}->{$id}->{'publishdateutc'};
 #	my $url = $xml->{'podfiles'}->{'podfile'}->{$id}->{'url'};
 #	my $duration = $xml->{'broadcasts'}->{'broadcast'}->{$id}->{'broadcastfiles'}->{'broadcastfile'}->{'duration'};
 #	$log->info(Data::Dump::dump($url));
 	push @menu, {name  => $title,
+		     # OK to add other has values?
+		     published => $publishDate,
 		     url         => \&fetch_and_parse_xml,
 		     passthrough =>
 			 [{
@@ -361,7 +373,8 @@ sub parseProgramPods {
     # Strange, menu items have to be sorted on name it seems...
     # (otherwise it does not work to select in player GUI, it choose another item then the displayed one)
     #NEXT add date and sort according to date...
-    @menu = sort { $a->{name} cmp $b->{name} } @menu;
+    #    @menu = sort { $a->{name} cmp $b->{name} } @menu;
+    @menu = sort { $b->{published} cmp $a->{published} } @menu;
 #    $log->info(Data::Dump::dump(@menu));
     return @menu;
 }
