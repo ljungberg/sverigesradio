@@ -33,6 +33,7 @@ sub handler {
 	if ($params->{'saveSettings'} && $params->{'programFilter'}) {
 		if ($params->{'programFilter'}) {
 			$prefs->set('programFilter', $params->{'programFilter'});
+			$log->info(Data::Dump::dump($prefs->get('programFilter')));
 		}
 	
 		if ($params->{'programFavorites'} ) {
@@ -42,6 +43,10 @@ sub handler {
 			Plugins::SverigesRadio::Plugin->lookupAndSetFavoriteIds($params->{'programFavorites'});
 		}
 		
+		if ($params->{'maxNrOfPods'} ) {
+			$prefs->set('maxNrOfPods', $params->{'maxNrOfPods'});
+			$log->info(Data::Dump::dump($params->{'maxNrOfPods'}));
+		}
 		if ($params->{'channelFavorites'} ) {
 		    $prefs->set('channelFavorites', $params->{'channelFavorites'});
 		    $log->info(Data::Dump::dump($params->{'channelFavorites'}));
@@ -55,6 +60,7 @@ sub handler {
 	$params->{'prefs'}->{'programFilter'} = $prefs->get('programFilter');
 	$params->{'prefs'}->{'programFavorites'} = $prefs->get('programFavorites');
 	$params->{'prefs'}->{'channelFavorites'} = $prefs->get('channelFavorites');
+	$params->{'prefs'}->{'maxNrOfPods'} = $prefs->get('maxNrOfPods');
 
 	# I have no idea what this does, but it seems important and it's not plugin-specific.
 	return $class->SUPER::handler($client, $params);

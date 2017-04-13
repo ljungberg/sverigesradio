@@ -30,6 +30,16 @@ my $prefs = preferences('plugin.sverigesradio');
 	# If the page is just being displayed initially, then this puts the current value found in prefs on the page.
 # so mayby try to set them in initPlugin?
 
+sub check_set_default_prefs {
+	if ($prefs->get('programFilter') eq '') {	
+	    $prefs->set('programFilter', 'http://api.sr.se/api/v2/programs/index?isarchived=false&pagination=false');
+	}
+	if ($prefs->get('maxNrOfPods') eq '') {	
+	    $prefs->set('maxNrOfPods', 10);
+	}
+	
+}
+
 sub initPlugin {
 	my $class = shift;
 
@@ -38,6 +48,8 @@ sub initPlugin {
 		Plugins::SverigesRadio::Settings->new();
 	}
 
+	check_set_default_prefs(),
+	
 	$class->SUPER::initPlugin(
 	    feed   => \&handleFeed,
 	    tag    => 'sverigesradio',
@@ -67,7 +79,7 @@ sub generate_favorite_programs {
 			 [{
 			     parse_fun => \&parseProgramPods,
 			     parse_fun_args  => {},
-			     url => 'http://api.sr.se/api/v2/podfiles?programid=' . $favorite->{'id'}
+			     url => getProdsUrl($favorite->{'id'})
 			  }]
 	};	
     }
@@ -77,7 +89,7 @@ sub generate_favorite_programs {
 
 sub lookupAndSetFavoriteIds {
     my ($class, $programFavorites) = @_;
-    my $url = 'http://api.sr.se/api/v2/programs/index?isarchived=false&pagination=false';
+    my $url = $prefs->get('programFilter');#'http://api.sr.se/api/v2/programs/index?isarchived=false&pagination=false';
     my @titles = split(';', $programFavorites);
     my @programs = ();
     
@@ -148,7 +160,7 @@ sub handleFeed {
 			      # for more details on url generation
 			      
 			      # Ask for all programs that are active and ask for everyone at once
-			      url        => 'http://api.sr.se/api/v2/programs/index?isarchived=false&haspod=true&pagination=false'
+			      url        => $prefs->get('programFilter')#$'http://api.sr.se/api/v2/programs/index?isarchived=false&haspod=true&pagination=false'
 				  #http://api.sr.se/api/v2/programs?pagination=false',
 				  #'http://api.sr.se/api/v2/programs/index',
 			   }]
@@ -206,15 +218,20 @@ sub parseChannels {
     $log->info(Data::Dump::dump(@realmChannels));
     return @realmChannels;
 }
-
+sub getProdsUrl {
+    my ($id) = @_;
+    my $MaxNrOfPods = $prefs->get('maxNrOfPods') || 10;
+    my $url = 'http://api.sr.se/api/v2/podfiles?programid=' . $id . '&size=' . $MaxNrOfPods;
+}
 sub parsePrograms {
     my ($xml) = @_;
     my @menu;
-
+    
     for my $title (keys %{$xml->{programs}->{program}}) {
 	my $id = $xml->{programs}->{program}->{$title}->{id};
 	my $imageUrl = $xml->{programs}->{program}->{$title}->{programimage};
-	my $url = 'http://api.sr.se/api/v2/podfiles?programid=' . $id;
+#	my $url = 'http://api.sr.se/api/v2/podfiles?programid=' . $id;
+	my $url = getProdsUrl($id);
 
 	push @menu, {name        => $title,
 		     icon        => $imageUrl,

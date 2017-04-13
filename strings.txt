@@ -7,6 +7,12 @@ PLUGIN_SVERIGES_RADIO_DESC
 PLUGIN_SVERIGES_RADIO_FAVORITE_PROGRAMS
 	EN	Favorit Program
 	SV	Sveriges Radio
+PLUGIN_SVERIGES_RADIO_PREFS_MAX_NR_OF_PODS
+	EN	Max antal Poddar per Program
+	SV	Sveriges Radio
+PLUGIN_SVERIGES_RADIO_PREFS_MAX_NR_OF_PODS_DSC
+	EN	Anger hur många Poddar för ett givet program som skall visas i menyn (från nyaste Program -> äldsta Program). Vissa Program har flera hundra Poddar.
+	SV	Sveriges Radio
 PLUGIN_SVERIGES_RADIO_LATEST_SHORT_NEWS
 	EN	Senaste EKO sändningen
 	SV	Sveriges Radio
