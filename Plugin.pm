@@ -27,7 +27,7 @@ my $log = Slim::Utils::Log->addLogCategory( {
 my $prefs = preferences('plugin.sverigesradio');
 
 # default values for settings?
-	# If the page is just being displayed initially, then this puts the current value found in prefs on the page.
+# If the page is just being displayed initially, then this puts the current value found in prefs on the page.
 # so mayby try to set them in initPlugin?
 
 sub check_set_default_prefs {
@@ -89,7 +89,7 @@ sub generate_favorite_programs {
 
 sub lookupAndSetFavoriteIds {
     my ($class, $programFavorites) = @_;
-    my $url = $prefs->get('programFilter');#'http://api.sr.se/api/v2/programs/index?isarchived=false&pagination=false';
+    my $url = $prefs->get('programFilter');
     my @titles = split(';', $programFavorites);
     my @programs = ();
     
@@ -247,57 +247,6 @@ sub parsePrograms {
     }
     return @menu;
 }
-sub tmpLocalDownload {
-    # since sr have some fault in their server, it is not possible to stream an audio file
-    # consistently (timeout problems)
-    # See https://kundo.se/org/sverigesradio/d/squeezebox-radio-poddfiler-stannar-efter-en-viss-t/
-    #
-    # Instead download the audio file localy to /tmp on LMS server and stream it locally to the player
-
-    # Remove All old files
-    unlink glob "/tmp/SverigesRadio_tmp_*";
-    my $url = shift;
-
-    # use timestamp in name so name is unique
-    my $timestamp = getLoggingTime();
-    my $filename = '/tmp/SverigesRadio_tmp_'. $timestamp . 'pod.mp3';
-    download($url, $filename);
-
-    'tmp://' . $filename;
-}
-sub getLoggingTime {
-    my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)=localtime(time);
-    my $nice_timestamp = sprintf ( "%04d%02d%02d %02d:%02d:%02d",
-                                   $year+1900,$mon+1,$mday,$hour,$min,$sec);
-    return $nice_timestamp;
-}
-sub download {
-    my $url = shift;
-    my $filename = shift;
-    my $ua = LWP::UserAgent->new;
-    my $req = HTTP::Request->new(GET => $url);
-    my $res = $ua->request($req, $filename);    
-}
-sub parseProgramPod {
-    my ($xml, $args) = @_;
-    my $imageUrl = $args->{image_url};
-    my @menu;
-    
-    my $title = $xml->{podfile}->{title};
-    my $duration = $xml->{podfile}->{duration};
-    my $description = $xml->{podfile}->{description};
-    my $url = $xml->{podfile}->{url};
-    
-    push @menu, {name  => $title, #TODO how many chars can radio display? devide it into name2?
-		 line1 => $description,#TODO how many chars can radio display? devide it into line2?
-		 icon => $imageUrl,
-		 type => 'audio',
-		 play  => tmpLocalDownload($url),
-		 duration => $duration, # SR duration is in seconds, what is squeezbox?
-		 on_select => 'play'
-    };
-    return @menu;
-}
 sub parseProgramPods {
     my ($xml, $args) = @_;
     my @menu;
@@ -306,28 +255,15 @@ sub parseProgramPods {
     # id is head element according to xml
     for my $id (keys %{$xml->{podfiles}->{podfile}}) {
 	my $title = $xml->{podfiles}->{podfile}->{$id}->{title};
-	my $url = 'http://api.sr.se/api/v2/podfiles/' . $id;
+	my $url = $xml->{podfiles}->{podfile}->{$id}->{url};
 	my $publishDate = $xml->{podfiles}->{podfile}->{$id}->{publishdateutc};
 
 	push @menu, {name  => $title,
 		     published => $publishDate, # Ok to use this custom hash field for own purpose
-		     url         => \&fetch_and_parse_xml,
-		     passthrough =>
-			 [{
-			     parse_fun => \&parseProgramPod,
-			     parse_fun_args => $args,
-			     url       => $url,
-			  }]
+		     type => 'audio',
+		     on_select => 'play',
+		     play  => $url
 	};
-
-#		     type => 'audio',
-		     # SR duration is in seconds, what is squeezbox?
-#		     duration => $duration,
-#		     play => $url,
-#		     on_select => 'play'
-			 # broadcasts are m4a files
-			 # can not play m4a files! since outside decoder used that does not work...
-			 #see http://forums.slimdevices.com/showthread.php?82324-Playing-m4a-%28AAC%29-with-Squeezebox-Server
     }
     # Display in newst -> oldest order
     @menu = sort { $b->{published} cmp $a->{published} } @menu;
