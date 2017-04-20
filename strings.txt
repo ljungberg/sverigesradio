@@ -1,7 +1,7 @@
 PLUGIN_SVERIGES_RADIO
 	EN	Sveriges Radio
 PLUGIN_SVERIGES_RADIO_DESC
-	EN	Listen to live Swedish Radio channels or listen to past Swedish Radio programs with music (broadcasts) or without (pods).
+	EN	Listen to live Swedish Radio channels or past Swedish Radio programs (pods).
 PLUGIN_SVERIGES_RADIO_FAVORITE_PROGRAMS
 	EN	Favorit Program
 PLUGIN_SVERIGES_RADIO_LATEST_SHORT_NEWS
