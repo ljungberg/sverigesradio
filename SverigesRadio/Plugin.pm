@@ -151,7 +151,8 @@ sub parseChannels {
 	}
 	else
 	{
-	    push @{%menuHash{$type}}, $channel;
+	    #NEXT why not work on pi but on develop computer? different perl?
+	    push @menuHash{$type}, $channel;
 	}
     }
     for my $radioType (keys %menuHash) {
