@@ -64,13 +64,7 @@ sub handleFeed {
 	    name => cstring($client, 'PLUGIN_SVERIGES_RADIO_FAVORITE_PROGRAMS'),
 	    url => \&generate_favorite_programs
 	  },{
-	      name => cstring($client, 'PLUGIN_SVERIGES_RADIO_LATEST_SHORT_NEWS'),
-	      #See http://sverigesradio.se/api/documentation/v2/metoder/ljud.html
-	      play => 'http://sverigesradio.se/api/radio/radio.aspx?type=latestbroadcast&id=4540&codingformat=.m4a&metafile=m3u',
-	      on_select => 'play',
-	      type => 'audio'
-		  },{
-		      name => cstring($client, 'PLUGIN_SVERIGES_RADIO_LATEST_MEDIUM_NEWS'),
+	      name => cstring($client, 'PLUGIN_SVERIGES_RADIO_LATEST_MEDIUM_NEWS'),
 		      # Since 'short' hourly EKO broadcasts are not kept as pod files
 		      # asking for the latest EKO pod file will result in last 'big' news
 		      # package
