@@ -7,12 +7,8 @@ use Slim::Utils::Log;
 use Plugins::SverigesRadio::Plugin;
 use Slim::Utils::Strings qw(cstring);
 
-# Used for logging.
-my $log = Slim::Utils::Log->addLogCategory({
-	'category'     => 'plugin.sverigesradio',
-	'defaultLevel' => 'INFO',
-	'description'  => 'SverigesRadio Settings',
-});
+# Re-use logging created in Plugin.pm
+my $log   = logger('plugin.sverigesradio');
 
 my $prefs = preferences('plugin.sverigesradio');
 
@@ -52,10 +48,10 @@ sub handler {
 	$params->{'prefs'}->{'channelFavorites'} = $prefs->get('channelFavorites');
 	$params->{'prefs'}->{'maxNrOfPods'} = $prefs->get('maxNrOfPods');
 
-	$log->info(cstring($client, 'PLUGIN_SVERIGES_RADIO_PREFS_PROGRAM_FILTER') .': ' . $prefs->get('programFilter'));
-	$log->info(cstring($client, 'PLUGIN_SVERIGES_RADIO_PREFS_PROGRAM_FAVORITES') .': ' . $prefs->get('programFavorites'));
-	$log->info(cstring($client, 'PLUGIN_SVERIGES_RADIO_PREFS_CHANNEL_FAVORITES') .': ' . $prefs->get('channelFavorites'));
-	$log->info(cstring($client, 'PLUGIN_SVERIGES_RADIO_PREFS_MAX_NR_OF_PODS') .': ' . $prefs->get('maxNrOfPods'));
+	main::DEBUGLOG && $log->debug(cstring($client, 'PLUGIN_SVERIGES_RADIO_PREFS_PROGRAM_FILTER') .': ' . $prefs->get('programFilter'));
+	main::DEBUGLOG && $log->debug(cstring($client, 'PLUGIN_SVERIGES_RADIO_PREFS_PROGRAM_FAVORITES') .': ' . $prefs->get('programFavorites'));
+	main::DEBUGLOG && $log->debug(cstring($client, 'PLUGIN_SVERIGES_RADIO_PREFS_CHANNEL_FAVORITES') .': ' . $prefs->get('channelFavorites'));
+	main::DEBUGLOG && $log->debug(cstring($client, 'PLUGIN_SVERIGES_RADIO_PREFS_MAX_NR_OF_PODS') .': ' . $prefs->get('maxNrOfPods'));
 
 	# I have no idea what this does, but it seems important and it's not plugin-specific.
 	return $class->SUPER::handler($client, $params);

@@ -24,7 +24,10 @@ use Data::Dumper;
 
 my $log = Slim::Utils::Log->addLogCategory( {
     category     => 'plugin.sverigesradio',
-    defaultLevel => 'INFO',
+    # defaultLevel is the defualt debug level of this plugin!
+    # i.e keep OFF by default... Can be changed in web GUI
+    # 'Settings'->'Advanced' choose 'Logging' in drop down menu
+    defaultLevel => 'OFF',
     description  => 'PLUGIN_SVERIGES_RADIO'
 					    } );
 
@@ -102,7 +105,7 @@ sub handleFeed {
 sub generate_favorite_programs {
     my ($client, $cb, $params, $args) = @_;
     my $favoritesRef = $prefs->get('FavoriteIds');
-    $log->info(@$favoritesRef);
+    main::DEBUGLOG && $log->debug(@$favoritesRef);
     my @menu;
 
     for my $favorite (@$favoritesRef)
@@ -118,7 +121,7 @@ sub generate_favorite_programs {
 			  }]
 	};	
     }
-    $log->info(Data::Dump::dump(@menu));
+    main::DEBUGLOG && $log->debug(sub { return Data::Dump::dump(@menu); });
     $cb->( {items => \@menu} );
 }
 
@@ -129,7 +132,7 @@ sub parseChannels {
     my %menuHash;
     my @realmChannels;
     my @favoriteChannels = split(';', $prefs->get('channelFavorites'));
-    $log->info(Data::Dump::dump(@favoriteChannels));
+    main::DEBUGLOG && $log->debug(sub { return Data::Dump::dump(@favoriteChannels); });
 
     for my $name (keys %{$xml->{channels}->{channel}}) {
 	my $type = $xml->{channels}->{channel}->{$name}->{channeltype};
@@ -163,7 +166,7 @@ sub parseChannels {
     @menu = sort { $a->{name} cmp $b->{name} } @menu;
     @realmChannels = sort { $a->{name} cmp $b->{name} } @realmChannels;
     push( @realmChannels, @menu);
-    $log->info(Data::Dump::dump(@realmChannels));
+    main::DEBUGLOG && $log->debug(sub { return Data::Dump::dump(@realmChannels); });
     return @realmChannels;
 }
 
@@ -189,7 +192,7 @@ sub parsePrograms {
 	};
 	@menu = sort { $a->{name} cmp $b->{name} } @menu;
     }
-    $log->info(Data::Dump::dump(@menu));
+     main::DEBUGLOG && $log->debug(sub { return Data::Dump::dump(@menu); });
     return @menu;
 }
 
@@ -197,7 +200,7 @@ sub parsePrograms {
 sub parseProgramPods {
     my ($xml, $args) = @_;
     my @menu;
-    $log->info(Data::Dump::dump($xml));
+     main::DEBUGLOG && $log->debug(sub { return Data::Dump::dump($xml); });
 
     # id is head element according to xml
     for my $id (keys %{$xml->{podfiles}->{podfile}}) {
@@ -214,7 +217,7 @@ sub parseProgramPods {
     }
     # Display in newst -> oldest order
     @menu = sort { $b->{published} cmp $a->{published} } @menu;
-    $log->info(Data::Dump::dump(@menu));
+     main::DEBUGLOG && $log->debug(sub { return Data::Dump::dump(@menu); });
     return @menu;
 }
 
@@ -223,7 +226,7 @@ sub parseProgramPods {
 sub fetch_and_parse_xml{
     my ($client, $cb, $params, $args) = @_;
     my $url = $args->{url};
-    $log->info(Data::Dump::dump($url));
+     main::DEBUGLOG && $log->debug(sub { return Data::Dump::dump($url); });
     my $parseFun = $args->{parse_fun};
     my $parseFunArgs = $args->{parse_fun_args};
 
@@ -243,7 +246,7 @@ sub fetch_and_parse_xml{
 	},
 	sub {
 	    my ($http, $error) = @_;
-	    $log->warn("Error: $error");
+	     main::DEBUGLOG && $log->warn("Error: $error");
 	},
 	{
 	    timeout => 15,
@@ -258,9 +261,9 @@ sub fetch_and_parse_xml{
 # Icon url to be saved in preference.
 sub lookupAndSetFavoriteIds {
     my ($class, $programFavorites) = @_;
-    $log->info($programFavorites);
+     main::DEBUGLOG && $log->debug($programFavorites);
     my $url = $prefs->get('programFilter');
-    $log->info($url);
+     main::DEBUGLOG && $log->debug($url);
     my @titles = split(';', $programFavorites);
     my @programs;
     
@@ -282,11 +285,11 @@ sub lookupAndSetFavoriteIds {
 	    }
 
 	    $prefs->set('FavoriteIds', \@programs);
-	    $log->info(Data::Dump::dump($prefs->get('FavoriteIds')));
+	     main::DEBUGLOG && $log->debug(sub { return Data::Dump::dump($prefs->get('FavoriteIds')); });
 	},
 	sub {
 	    my ($http, $error) = @_;
-	    $log->warn("Error: $error");
+	     main::DEBUGLOG && $log->warn("Error: $error");
 	},
 	{
 	    timeout => 15,
