@@ -27,4 +27,8 @@ Usage
 
 The plugin can be used as-is. To add favorite channels or Programs go to the plugin's settings page.
 
+If 'SverigesRadio' is not available under 'Home->Radio' menu try to restart the player and/or squeezebox server.
+
+To turn on debug output change the default setting ('OFF') in web GUI. It can be changed under 'Settings'->'Advanced'. Choose 'Logging' in drop down menu and set level to 'DEBUG'.
+
 
