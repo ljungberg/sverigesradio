@@ -1,4 +1,4 @@
----
+
 layout: page
 title: SverigesRadio plugin
 ---
@@ -32,3 +32,8 @@ If 'SverigesRadio' is not available under 'Home->Radio' menu try to restart the 
 To turn on debug output change the default setting ('OFF') in web GUI. It can be changed under 'Settings'->'Advanced'. Choose 'Logging' in drop down menu and set level to 'DEBUG'.
 
 
+Thanks goes out to:
+* https://github.com/pierrepoulpe/SqueezeboxQobuz
+* https://github.com/adhawkins/SimpleLibraryViews
+
+for showing me how to write Squeezebox plugins.

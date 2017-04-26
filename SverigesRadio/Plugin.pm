@@ -24,7 +24,7 @@ use Data::Dumper;
 
 my $log = Slim::Utils::Log->addLogCategory( {
     category     => 'plugin.sverigesradio',
-    # defaultLevel is the defualt debug level of this plugin!
+    # defaultLevel is the default debug level of this plugin!
     # i.e keep OFF by default... Can be changed in web GUI
     # 'Settings'->'Advanced' choose 'Logging' in drop down menu
     defaultLevel => 'OFF',
@@ -148,7 +148,6 @@ sub parseChannels {
 	}
 	else
 	{
-	    #NEXT why not work on pi but on develop computer? different perl?
 	    push @menuHash{$type}, $channel;
 	}
     }
