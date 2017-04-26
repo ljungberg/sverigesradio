@@ -5,7 +5,7 @@
 	<creator>Nils Ljungberg</creator>
 	<email>nils dot ljungberg at gmail dott com</email>
 	<module>Plugins::SverigesRadio::Plugin</module>
-	<version>1.0.0</version>
+	<version>1.1.0</version>
 	<description>PLUGIN_SVERIGES_RADIO_DESC</description>
 	<defaultState>enabled</defaultState>
 	<homepageURL>https://github.com/ljungberg/sverigesradio</homepageURL>
