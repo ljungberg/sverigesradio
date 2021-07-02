@@ -3,10 +3,10 @@
 		<title lang="EN">Nils Ljungberg Plugins</title>
 	</details>
 	<plugins>
-		<plugin name="SverigesRadio" version="1.1.0" minTarget="7.9" maxTarget="*">
+		<plugin name="SverigesRadio" version="1.2.0" minTarget="7.9" maxTarget="*">
 			<title lang="EN">SverigesRadio</title>
 			<desc lang="EN">Plugin to listen to live Swedish Radio channels or past Swedish Radio programs (pods).</desc>
-			<url>http://ljungberg.github.io/sverigesradio/SverigesRadio-1.1.0.zip</url>
+			<url>http://ljungberg.github.io/sverigesradio/SverigesRadio-1.2.0.zip</url>
 			<link>https://github.com/ljungberg/sverigesradio</link>
 			<creator>Nils Ljungberg</creator>
 			<email>nils dot ljungberg at gmail dott com</email>
