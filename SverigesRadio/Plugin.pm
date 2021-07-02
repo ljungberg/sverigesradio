@@ -148,7 +148,7 @@ sub parseChannels {
 	}
 	else
 	{
-	    push @menuHash{$type}, $channel;
+	    push @{ $menuHash{$type} }, $channel;
 	}
     }
     for my $radioType (keys %menuHash) {
