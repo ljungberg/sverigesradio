@@ -88,7 +88,7 @@ sub handleFeed {
 			  [{
 			      parse_fun => \&parseChannels,
 			      parse_fun_args => {},
-			      url        => 'http://api.sr.se/api/v2/channels/index?pagination=false'
+			      url        => 'http://api.sr.se/api/v2/channels?pagination=false'
 			   }]
 		  }
 	    ]});
